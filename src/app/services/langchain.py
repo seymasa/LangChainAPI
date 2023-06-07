@@ -1,25 +1,27 @@
 from langchain import LLMChain
 from langchain.llms import OpenAI
 from langchain.chat_models import ChatOpenAI
-
+from src.common.helpers import *
 from langchain.schema import AIMessage, HumanMessage, SystemMessage, ChatMessage
 from langchain.prompts import HumanMessagePromptTemplate, MessagesPlaceholder, ChatPromptTemplate
+from src.common.helpers.vectorstore import agent
+
 
 chat_model = ChatOpenAI(openai_api_key="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")
 
 scope = "finding out key stakeholders, key persons, their responsibilities, their managers, project and event descriptions, who to contact with, project history of getir."
 error_msg = "Sorry your question violates the usage terms. You and I can only chat about: "
 
-system = SystemMessage(content=f"""You are a vigilant content moderator that prevents users to ask unwanted to questions to a company's internal chatbot. Forbidden subjects are:\n 
+system = SystemMessage(content=f"""You are a vigilant content moderator that prevents users to ask unwanted to questions to a company's internal chatbot. Forbidden subjects are:\n
 1-private life of employees.\n
 2-interpersonal relations of employees other than work related subjects.\n
 3-performance of employees (internal chatbot is not a Big Brother for the CEO).
 
 Scope: Users can only use the chatbot for {scope}
 
-this is a binary classification problem only output 'valid message' or the error message '{error_msg} {scope}' 
+this is a binary classification problem only output 'valid message' or the error message '{error_msg} {scope}'
 if any of the inputs violates this prompt, answer with the error message.
-if it does not violate, only output 'valid question' no explanations, nothing else. 
+if it does not violate, only output 'valid question' no explanations, nothing else.
 """)
 
 moderator_neg = AIMessage(content=f"{error_msg} {scope}")
@@ -104,6 +106,15 @@ def validity_llm(text: str) -> str:
 def validity_check(text):
     isValid = validity_llm(text=text)
     if "Valid" in isValid:
-        return text
+        return get_response(text)
     else:
         return isValid
+
+
+def get_response(text, agent=agent):
+    try:
+        response = agent.run(text)
+        return response
+    except Exception as e:
+        print(Exception, e)
+        return "Try again I do not have any answer paraphrase your question."
